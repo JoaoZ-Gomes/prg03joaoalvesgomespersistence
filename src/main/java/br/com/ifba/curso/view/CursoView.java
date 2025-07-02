@@ -11,6 +11,11 @@ import javax.swing.JScrollPane; // Se ainda não tiver
 import javax.swing.JLabel; // Se ainda não tiver
 import javax.swing.JOptionPane; // Se ainda não tiver
 import javax.swing.UIManager; // Para LookAndFeel e cores padrão
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import br.com.ifba.curso.entity.Curso;
+
 
 import javax.swing.table.DefaultTableModel; // Para o modelo da tabela
 import javax.swing.table.TableCellRenderer; // Para o renderizador de botão
@@ -42,6 +47,10 @@ import java.awt.event.*;
 public class CursoView extends javax.swing.JFrame {
     private TableRowSorter<DefaultTableModel> sorter;
     
+    private EntityManagerFactory emf;
+private EntityManager em;
+
+    
     
   
 public class IconRenderer extends DefaultTableCellRenderer {
@@ -67,78 +76,153 @@ public class IconRenderer extends DefaultTableCellRenderer {
     /**
      * Creates new form CursoView
      */
-    public CursoView() {
-        initComponents();
-        
-          DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
-              tblCursos.setPreferredScrollableViewportSize(new Dimension(800, 400));
+    public CursoView() {    
+        initEntityManager();
+    initComponents();
 
+    setLocationRelativeTo(null); // Centraliza a janela
 
-    // Adicionar um curso exemplo
-    model.addRow(new Object[]{
-        "Análise e Desenvolvimento de Sistemas", // Nome
-        "2700",                                     // Quantidade de vagas
-        "Curso focado em desenvolvimento de software.", // Descrição
-        "REMOVER",                                // Coluna de Remover (ícone)
-        "EDITAR"                                  // Coluna de Editar (ícone)
+    // Modelo da tabela com coluna ID incluída (para controle interno)
+    DefaultTableModel model = new DefaultTableModel(
+        new Object [][] {},
+        new String [] {"ID", "NOME", "CARGA HORÁRIA", "DESCRIÇÃO", "REMOVER", "EDITAR"}
+    ) {
+        boolean[] canEdit = new boolean[] {
+            false, false, false, false, false, false
+        };
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            return canEdit[column];
+        }
+    };
+    tblCursos.setModel(model);
+    tblCursos.setPreferredScrollableViewportSize(new Dimension(800, 400));
+    tblCursos.setRowHeight(40);
+
+    // Exemplo de adição de linha - **OBS: aqui o ID precisa existir e ser numérico**
+    model.addRow(new Object[] {
+        1L, // ID numérico e único
+        "Análise e Desenvolvimento de Sistemas",
+        2700,
+        "Curso focado em desenvolvimento de software.",
+        "REMOVER",
+        "EDITAR"
     });
-      
+
+    // Configura o sorter para filtro funcionar corretamente
     sorter = new TableRowSorter<>(model);
     tblCursos.setRowSorter(sorter);
 
-    // Ícones de ação
+    // Ícones para as ações remover e editar
     ImageIcon iconRemover = new ImageIcon(getClass().getResource("/imagens/lixeira.png"));
     ImageIcon iconEditar = new ImageIcon(getClass().getResource("/imagens/editar.png"));
 
-    // Renderizar ícones
+    // Renderizadores para as colunas de ícones
     tblCursos.getColumn("REMOVER").setCellRenderer(new IconRenderer(iconRemover));
     tblCursos.getColumn("EDITAR").setCellRenderer(new IconRenderer(iconEditar));
 
-    // MouseListener único
-    tblCursos.addMouseListener(new java.awt.event.MouseAdapter() {
+    // Ocultar a coluna ID (index 0)
+    tblCursos.getColumnModel().getColumn(0).setMinWidth(0);
+    tblCursos.getColumnModel().getColumn(0).setMaxWidth(0);
+    tblCursos.getColumnModel().getColumn(0).setWidth(0);
+
+    // Listener para ações de clique (remover e editar)
+    tblCursos.addMouseListener(new MouseAdapter() {
         @Override
-        public void mouseClicked(java.awt.event.MouseEvent evt) {
+        public void mouseClicked(MouseEvent evt) {
             int row = tblCursos.rowAtPoint(evt.getPoint());
             int col = tblCursos.columnAtPoint(evt.getPoint());
+            if (row < 0 || col < 0) return;
 
+            // Ajustar índice da linha para o modelo (considerando ordenação/filtro)
+            int modelRow = tblCursos.convertRowIndexToModel(row);
             DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
 
-            // === REMOVER ===
+            // Ação REMOVER
             if (col == tblCursos.getColumn("REMOVER").getModelIndex()) {
                 int confirm = JOptionPane.showConfirmDialog(
-                        null,
-                        "Tem certeza que deseja remover este curso?",
-                        "Confirmação",
-                        JOptionPane.YES_NO_OPTION
+                    null,
+                    "Tem certeza que deseja remover este curso?",
+                    "Confirmação",
+                    JOptionPane.YES_NO_OPTION
                 );
+
                 if (confirm == JOptionPane.YES_OPTION) {
-                    model.removeRow(row);
+                    try {
+                        Long id = Long.parseLong(model.getValueAt(modelRow, 0).toString());
+
+                        em.getTransaction().begin();
+                        Curso curso = em.find(Curso.class, id);
+
+                        if (curso != null) {
+                            em.remove(curso);
+                            em.getTransaction().commit();
+
+                            model.removeRow(modelRow);
+
+                            JOptionPane.showMessageDialog(null, "Curso removido do banco com sucesso!");
+                        } else {
+                            em.getTransaction().rollback();
+                            JOptionPane.showMessageDialog(null, "Curso não encontrado no banco de dados!");
+                        }
+                    } catch (Exception ex) {
+                        em.getTransaction().rollback();
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "Erro ao remover curso: " + ex.getMessage());
+                    }
                 }
             }
 
-            // === EDITAR ===
+            // Ação EDITAR
             if (col == tblCursos.getColumn("EDITAR").getModelIndex()) {
-                String nomeAtual = (String) model.getValueAt(row, 0);
-                String qtdAtual = String.valueOf(model.getValueAt(row, 1));
-                String descAtual = (String) model.getValueAt(row, 2);
+                try {
+                    Long id = Long.parseLong(model.getValueAt(modelRow, 0).toString());
+                    Curso curso = em.find(Curso.class, id);
 
-                String novoNome = JOptionPane.showInputDialog(null, "Novo nome do curso:", nomeAtual);
-                if (novoNome == null || novoNome.trim().isEmpty()) return;
+                    if (curso != null) {
+                        String novoNome = JOptionPane.showInputDialog(null, "Novo nome:", curso.getNome());
+                        if (novoNome == null || novoNome.trim().isEmpty()) return;
 
-                String novaQtd = JOptionPane.showInputDialog(null, "Nova cargo horaria:", qtdAtual);
-                if (novaQtd == null || novaQtd.trim().isEmpty()) return;
+                        String novaCarga = JOptionPane.showInputDialog(null, "Nova carga horária:", curso.getCargaHoraria());
+                        if (novaCarga == null || novaCarga.trim().isEmpty()) return;
 
-                String novaDesc = JOptionPane.showInputDialog(null, "Nova descrição:", descAtual);
-                if (novaDesc == null || novaDesc.trim().isEmpty()) return;
+                        String novaDesc = JOptionPane.showInputDialog(null, "Nova descrição:", curso.getDescricao());
+                        if (novaDesc == null || novaDesc.trim().isEmpty()) return;
 
-                model.setValueAt(novoNome, row, 0);
-                model.setValueAt(novaQtd, row, 1);
-                model.setValueAt(novaDesc, row, 2);
+                        em.getTransaction().begin();
+                        curso.setNome(novoNome);
+                        curso.setCargaHoraria(Integer.parseInt(novaCarga));
+                        curso.setDescricao(novaDesc);
+                        em.getTransaction().commit();
+
+                        model.setValueAt(novoNome, modelRow, 1);
+                        model.setValueAt(Integer.parseInt(novaCarga), modelRow, 2);
+                        model.setValueAt(novaDesc, modelRow, 3);
+
+                        JOptionPane.showMessageDialog(null, "Curso atualizado com sucesso!");
+                    }
+                } catch (Exception ex) {
+                    em.getTransaction().rollback();
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "Erro ao atualizar: " + ex.getMessage());
+                }
             }
         }
     });
+   
+    // 💡 Ocultar coluna ID na tabela
+tblCursos.getColumnModel().getColumn(0).setMinWidth(0);
+tblCursos.getColumnModel().getColumn(0).setMaxWidth(0);
+tblCursos.getColumnModel().getColumn(0).setWidth(0);
+
         
         }
+    
+    private void initEntityManager() {
+    emf = Persistence.createEntityManagerFactory("prg03JoaoAlvesGomesPresistencia"); 
+    em = emf.createEntityManager();
+}
+
     
     private void filtrarTabela(String texto) {
     if (texto.trim().length() == 0) {
@@ -303,34 +387,46 @@ System.out.println("Texto buscado: " + texto);
 
     private void btnAdcionarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnAdcionarActionPerformed
    String nome = JOptionPane.showInputDialog(this, "Nome do Curso:");
-        if (nome == null || nome.trim().isEmpty()) {
-            // Usuário cancelou ou digitou uma string vazia, não faz nada
-            return;
-        }
+    if (nome == null || nome.trim().isEmpty()) return;
 
-        String cargaHorariaStr = JOptionPane.showInputDialog(this, "Carga Horária:");
-        if (cargaHorariaStr == null || cargaHorariaStr.trim().isEmpty()) {
-            // Usuário cancelou ou digitou uma string vazia, não faz nada
-            return;
-        }
+    String cargaHorariaStr = JOptionPane.showInputDialog(this, "Carga Horária:");
+    if (cargaHorariaStr == null || cargaHorariaStr.trim().isEmpty()) return;
 
-        // Valida se a Carga Horária é um número válido
-        int cargaHoraria;
-        try {
-            cargaHoraria = Integer.parseInt(cargaHorariaStr.trim());
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "A Carga Horária deve ser um número válido.", "Erro de Entrada", JOptionPane.ERROR_MESSAGE);
-            return; // Sai do método se a entrada não for um número válido
-        }
+    int cargaHoraria;
+    try {
+        cargaHoraria = Integer.parseInt(cargaHorariaStr.trim());
+    } catch (NumberFormatException e) {
+        JOptionPane.showMessageDialog(this, "A Carga Horária deve ser um número.", "Erro", JOptionPane.ERROR_MESSAGE);
+        return;
+    }
 
-        String descricao = JOptionPane.showInputDialog(this, "Descrição:");
-        if (descricao == null || descricao.trim().isEmpty()) {
-            // Usuário cancelou ou digitou uma string vazia, não faz nada
-            return;
-        }
+    String descricao = JOptionPane.showInputDialog(this, "Descrição:");
+    if (descricao == null || descricao.trim().isEmpty()) return;
 
+    try {
+        em.getTransaction().begin();
+        Curso novoCurso = new Curso(nome, descricao, cargaHoraria);
+        em.persist(novoCurso);
+        em.getTransaction().commit();
+
+        // 💡 Adiciona na tabela com ID:
         DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
-        model.addRow(new Object[]{nome, cargaHoraria, descricao, "Remover", "Editar"});
+        model.addRow(new Object[]{
+            novoCurso.getId(),
+            nome,
+            cargaHoraria,
+            descricao,
+            "REMOVER",
+            "EDITAR"
+        });
+
+        JOptionPane.showMessageDialog(this, "Curso salvo no banco com sucesso!");
+    } catch (Exception ex) {
+        em.getTransaction().rollback();
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Erro ao salvar curso: " + ex.getMessage());
+    }
+
     }//GEN-LAST:event_btnAdcionarActionPerformed
 
     private void btnHomescreenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHomescreenActionPerformed
