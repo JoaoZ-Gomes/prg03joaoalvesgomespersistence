@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="2.2"
+             xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd">
+
+    <persistence-unit name="prg03JoaoAlvesGomesPresistencia" transaction-type="RESOURCE_LOCAL">
+        <!-- Define o provedor JPA -->
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <!-- Entidades JPA -->
+        <class>br.com.ifba.curso.entity.Curso</class>
+        <!-- Adicione outras entidades aqui, se tiver -->
+        
+        <!-- Configurações de conexão com o banco -->
+        <properties>
+            <!-- Driver JDBC -->
+            <property name="jakarta.persistence.jdbc.driver"
+                      value="com.mysql.cj.jdbc.Driver"/>
+
+            <!-- URL do banco de dados -->
+            <property name="jakarta.persistence.jdbc.url"
+                      value="jdbc:mysql://localhost:3306/banco?useSSL=false&amp;serverTimezone=UTC"/>
+
+            <!-- Usuário do banco -->
+            <property name="jakarta.persistence.jdbc.user"
+                      value="root"/>
+
+            <!-- Senha do banco -->
+            <property name="jakarta.persistence.jdbc.password"
+                      value="BancaoDoJoao"/>
+
+            <!-- Propriedades Hibernate -->
+            <property name="hibernate.dialect"
+                      value="org.hibernate.dialect.MySQL8Dialect"/>
+            <property name="hibernate.hbm2ddl.auto"
+                      value="update"/>
+            <property name="hibernate.show_sql"
+                      value="true"/>
+            <property name="hibernate.format_sql"
+                      value="true"/>
+        </properties>
+    </persistence-unit>
+</persistence>
