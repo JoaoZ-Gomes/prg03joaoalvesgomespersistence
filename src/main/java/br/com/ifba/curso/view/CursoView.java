@@ -15,6 +15,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 import br.com.ifba.curso.entity.Curso;
+import br.com.ifba.curso.dao.CursoDao;
 
 
 import javax.swing.table.DefaultTableModel; // Para o modelo da tabela
@@ -46,9 +47,9 @@ import java.awt.event.*;
  */
 public class CursoView extends javax.swing.JFrame {
     private TableRowSorter<DefaultTableModel> sorter;
+      private  EntityManager em;
     
-    private EntityManagerFactory emf;
-private EntityManager em;
+
 
     
     
@@ -77,8 +78,10 @@ public class IconRenderer extends DefaultTableCellRenderer {
      * Creates new form CursoView
      */
     public CursoView() {    
-        initEntityManager();
+     
     initComponents();
+    EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03JoaoAlvesGomesPresistencia");
+    em = emf.createEntityManager(); 
 
     setLocationRelativeTo(null); // Centraliza a janela
 
@@ -218,10 +221,7 @@ tblCursos.getColumnModel().getColumn(0).setWidth(0);
         
         }
     
-    private void initEntityManager() {
-    emf = Persistence.createEntityManagerFactory("prg03JoaoAlvesGomesPresistencia"); 
-    em = emf.createEntityManager();
-}
+    
 
     
     private void filtrarTabela(String texto) {
@@ -418,7 +418,7 @@ System.out.println("Texto buscado: " + texto);
             descricao,
             "REMOVER",
             "EDITAR"
-        });
+        }); 
 
         JOptionPane.showMessageDialog(this, "Curso salvo no banco com sucesso!");
     } catch (Exception ex) {

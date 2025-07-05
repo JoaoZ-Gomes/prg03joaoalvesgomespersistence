@@ -1,58 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    Arquivo de configuração Maven para o projeto de persistência
+    Autor: João Alves Gomes
+    Disciplina: Programação III
+    Versão: 1.1
+    Data: 05/07/2025
+-->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
+    <!-- Informações básicas do projeto -->
     <modelVersion>4.0.0</modelVersion>
     <groupId>br.com.ifba</groupId>
     <artifactId>prg03JoaoAlvesGomesPresistencia</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
+    <!-- Configurações globais do projeto -->
     <properties>
+        <!-- Configurações de encoding e compilação -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
+        
+        <!-- Classe principal para execução -->
         <exec.mainClass>br.com.ifba.Prg03JoaoAlvesGomesPresistencia</exec.mainClass>
 
-        <!-- Versões das dependências -->
+        <!-- Versões das dependências (centralizado para fácil manutenção) -->
         <jakarta.persistence-api.version>3.1.0</jakarta.persistence-api.version>
         <jakarta.transaction-api.version>2.0.1</jakarta.transaction-api.version>
         <hibernate.version>6.5.2.Final</hibernate.version>
+        <!-- 
+            ATENÇÃO: A partir da versão 8.0.23, o conector MySQL mudou de grupo:
+            De: mysql:mysql-connector-java
+            Para: com.mysql:mysql-connector-j
+        -->
         <mysql.connector.version>8.0.33</mysql.connector.version>
         <junit.jupiter.version>5.10.0</junit.jupiter.version>
     </properties>
 
+    <!-- Dependências do projeto -->
     <dependencies>
-        <!-- API do Jakarta Persistence (JPA) -->
+        <!-- 
+            Jakarta Persistence API (JPA) - Especificação padrão
+            Versão 3.1.0 é a mais recente estável
+        -->
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>${jakarta.persistence-api.version}</version>
         </dependency>
 
-        <!-- API do Jakarta Transaction (necessária para JPA/Hibernate) -->
+        <!-- 
+            API de Transações - Necessária para o funcionamento do JPA/Hibernate
+            Gerencia transações de forma padronizada
+        -->
         <dependency>
             <groupId>jakarta.transaction</groupId>
             <artifactId>jakarta.transaction-api</artifactId>
             <version>${jakarta.transaction-api.version}</version>
         </dependency>
 
-        <!-- Hibernate ORM (implementação do JPA) -->
+        <!-- 
+            Hibernate ORM - Implementação de referência do JPA
+            Inclui:
+            - Mapeamento objeto-relacional
+            - Cache de primeiro e segundo nível
+            - Validação de entidades
+        -->
         <dependency>
             <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
             <version>${hibernate.version}</version>
         </dependency>
 
-        <!-- Driver JDBC do MySQL -->
+        <!-- 
+            Driver JDBC para MySQL 8+
+            IMPORTANTE: Esta dependência foi renomeada:
+            Versões antigas usavam: mysql:mysql-connector-java
+            Versões novas usam: com.mysql:mysql-connector-j
+        -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.mysql</groupId>  <!-- Grupo atualizado -->
+            <artifactId>mysql-connector-j</artifactId>
             <version>${mysql.connector.version}</version>
         </dependency>
 
-        <!-- JUnit 5 para testes -->
+        <!-- 
+            JUnit 5 - Framework para testes unitários
+            Dependências marcadas como 'test' só estão disponíveis em src/test
+        -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -65,6 +103,48 @@
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- 
+            Dependência opcional para desenvolvimento de interfaces gráficas
+            Descomente se estiver usando JavaFX ou Swing
+        -->
+        <!--
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>21</version>
+        </dependency>
+        -->
     </dependencies>
+
+    <!-- Configurações de build -->
+    <build>
+        <plugins>
+            <!-- Plugin para compilação com Java 21 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <!-- Habilita preview features se necessário -->
+                    <compilerArgs>
+                        <arg>--enable-preview</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <!-- Plugin para executar a aplicação -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>${exec.mainClass}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
