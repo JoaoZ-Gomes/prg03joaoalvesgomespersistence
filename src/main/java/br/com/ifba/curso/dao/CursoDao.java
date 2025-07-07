@@ -1,22 +1,17 @@
 package br.com.ifba.curso.dao;
 
 import br.com.ifba.curso.entity.Curso;
-import br.com.ifba.infrastructure.dao.GenericDao; // Importa o GenericDao 
+import br.com.ifba.infrastructure.dao.GenericDao;
 import java.util.List;
 
-// DAO específico para a entidade Curso, que estende a classe genérica GenericDao
-public class CursoDao extends GenericDao<Curso> {
+// DAO do Curso agora implementa a interface ICursoDao
+public class CursoDao extends GenericDao<Curso> implements CursoIDao {
 
-    // Construtor que inicializa o DAO para trabalhar com a entidade Curso
     public CursoDao() {
-        super(Curso.class); // Passa a classe Curso para o GenericDao
+        super(Curso.class);
+        
     }
-    
-    // Herda     // - save(Curso curso)
-    // - findById(Long id)
-    // - update(Curso curso)
-    // - delete(Long id)
-    // - findAll()
-    
-    //  adicionar  métodos específicos para Curso que não existam no GenericDao
+
+    // Se o GenericDao já tem todos os métodos, não precisa reimplementar aqui.
+    // Só deixa a porta aberta pra métodos específicos de Curso futuramente.
 }

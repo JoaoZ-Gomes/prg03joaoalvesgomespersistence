@@ -37,6 +37,8 @@ import javax.swing.border.*;
 import javax.swing.table.*;
 import java.awt.*;
 import java.awt.event.*;
+import br.com.ifba.curso.controller.CursoController;
+
 
 
 
@@ -80,56 +82,66 @@ public class IconRenderer extends DefaultTableCellRenderer {
     public CursoView() {    
      
     initComponents();
-    EntityManagerFactory emf = Persistence.createEntityManagerFactory("prg03JoaoAlvesGomesPresistencia");
-    em = emf.createEntityManager(); 
 
-    setLocationRelativeTo(null); // Centraliza a janela
+    // Instancia o Controller seguindo o padrão MVC
+    CursoController cursoController = new CursoController();
 
-    // Modelo da tabela com coluna ID incluída (para controle interno)
+    // Centraliza a janela na tela
+    setLocationRelativeTo(null);
+
+    // Define o modelo da tabela com colunas específicas
+    // A coluna ID fica oculta para uso interno apenas
     DefaultTableModel model = new DefaultTableModel(
-        new Object [][] {},
-        new String [] {"ID", "NOME", "CARGA HORÁRIA", "DESCRIÇÃO", "REMOVER", "EDITAR"}
+        new Object[][] {},
+        new String[] { "ID", "NOME", "CARGA HORÁRIA", "DESCRIÇÃO", "REMOVER", "EDITAR" }
     ) {
-        boolean[] canEdit = new boolean[] {
-            false, false, false, false, false, false
-        };
+        boolean[] canEdit = new boolean[] { false, false, false, false, false, false };
+
         @Override
         public boolean isCellEditable(int row, int column) {
-            return canEdit[column];
+            return canEdit[column]; // Toda a tabela é não-editável diretamente
         }
     };
+    
+    // Configuração visual da tabela
     tblCursos.setModel(model);
     tblCursos.setPreferredScrollableViewportSize(new Dimension(800, 400));
     tblCursos.setRowHeight(40);
 
-    // Exemplo de adição de linha - **OBS: aqui o ID precisa existir e ser numérico**
-    model.addRow(new Object[] {
-        1L, // ID numérico e único
-        "Análise e Desenvolvimento de Sistemas",
-        2700,
-        "Curso focado em desenvolvimento de software.",
-        "REMOVER",
-        "EDITAR"
-    });
+    // Carrega os dados do banco na tabela
+    try {
+        for (Curso curso : cursoController.listarCursos()) {
+            model.addRow(new Object[] {
+                curso.getId(),
+                curso.getNome(),
+                curso.getCargaHoraria(),
+                curso.getDescricao(),
+                "REMOVER",
+                "EDITAR"
+            });
+        }
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        JOptionPane.showMessageDialog(null, "Erro ao carregar cursos: " + ex.getMessage());
+    }
 
-    // Configura o sorter para filtro funcionar corretamente
+    // Habilita ordenação na tabela
     sorter = new TableRowSorter<>(model);
     tblCursos.setRowSorter(sorter);
 
-    // Ícones para as ações remover e editar
+    // Configura ícones para os botões de ação
     ImageIcon iconRemover = new ImageIcon(getClass().getResource("/imagens/lixeira.png"));
     ImageIcon iconEditar = new ImageIcon(getClass().getResource("/imagens/editar.png"));
 
-    // Renderizadores para as colunas de ícones
     tblCursos.getColumn("REMOVER").setCellRenderer(new IconRenderer(iconRemover));
     tblCursos.getColumn("EDITAR").setCellRenderer(new IconRenderer(iconEditar));
 
-    // Ocultar a coluna ID (index 0)
+    // Oculta a coluna ID permanentemente
     tblCursos.getColumnModel().getColumn(0).setMinWidth(0);
     tblCursos.getColumnModel().getColumn(0).setMaxWidth(0);
     tblCursos.getColumnModel().getColumn(0).setWidth(0);
 
-    // Listener para ações de clique (remover e editar)
+    // Listener para tratar eventos de clique na tabela
     tblCursos.addMouseListener(new MouseAdapter() {
         @Override
         public void mouseClicked(MouseEvent evt) {
@@ -137,11 +149,9 @@ public class IconRenderer extends DefaultTableCellRenderer {
             int col = tblCursos.columnAtPoint(evt.getPoint());
             if (row < 0 || col < 0) return;
 
-            // Ajustar índice da linha para o modelo (considerando ordenação/filtro)
-            int modelRow = tblCursos.convertRowIndexToModel(row);
-            DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
+            int modelRow = tblCursos.convertRowIndexToModel(row); // Converte para índice do modelo
 
-            // Ação REMOVER
+            // Ação de remover curso
             if (col == tblCursos.getColumn("REMOVER").getModelIndex()) {
                 int confirm = JOptionPane.showConfirmDialog(
                     null,
@@ -153,34 +163,21 @@ public class IconRenderer extends DefaultTableCellRenderer {
                 if (confirm == JOptionPane.YES_OPTION) {
                     try {
                         Long id = Long.parseLong(model.getValueAt(modelRow, 0).toString());
-
-                        em.getTransaction().begin();
-                        Curso curso = em.find(Curso.class, id);
-
-                        if (curso != null) {
-                            em.remove(curso);
-                            em.getTransaction().commit();
-
-                            model.removeRow(modelRow);
-
-                            JOptionPane.showMessageDialog(null, "Curso removido do banco com sucesso!");
-                        } else {
-                            em.getTransaction().rollback();
-                            JOptionPane.showMessageDialog(null, "Curso não encontrado no banco de dados!");
-                        }
+                        cursoController.removerCurso(id);
+                        model.removeRow(modelRow);
+                        JOptionPane.showMessageDialog(null, "Curso removido com sucesso!");
                     } catch (Exception ex) {
-                        em.getTransaction().rollback();
                         ex.printStackTrace();
                         JOptionPane.showMessageDialog(null, "Erro ao remover curso: " + ex.getMessage());
                     }
                 }
             }
 
-            // Ação EDITAR
+            // Ação de editar curso
             if (col == tblCursos.getColumn("EDITAR").getModelIndex()) {
                 try {
                     Long id = Long.parseLong(model.getValueAt(modelRow, 0).toString());
-                    Curso curso = em.find(Curso.class, id);
+                    Curso curso = cursoController.buscarCurso(id);
 
                     if (curso != null) {
                         String novoNome = JOptionPane.showInputDialog(null, "Novo nome:", curso.getNome());
@@ -192,11 +189,11 @@ public class IconRenderer extends DefaultTableCellRenderer {
                         String novaDesc = JOptionPane.showInputDialog(null, "Nova descrição:", curso.getDescricao());
                         if (novaDesc == null || novaDesc.trim().isEmpty()) return;
 
-                        em.getTransaction().begin();
                         curso.setNome(novoNome);
                         curso.setCargaHoraria(Integer.parseInt(novaCarga));
                         curso.setDescricao(novaDesc);
-                        em.getTransaction().commit();
+
+                        cursoController.atualizarCurso(curso);
 
                         model.setValueAt(novoNome, modelRow, 1);
                         model.setValueAt(Integer.parseInt(novaCarga), modelRow, 2);
@@ -205,18 +202,17 @@ public class IconRenderer extends DefaultTableCellRenderer {
                         JOptionPane.showMessageDialog(null, "Curso atualizado com sucesso!");
                     }
                 } catch (Exception ex) {
-                    em.getTransaction().rollback();
                     ex.printStackTrace();
-                    JOptionPane.showMessageDialog(null, "Erro ao atualizar: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(null, "Erro ao atualizar curso: " + ex.getMessage());
                 }
             }
         }
     });
-   
-    // 💡 Ocultar coluna ID na tabela
-tblCursos.getColumnModel().getColumn(0).setMinWidth(0);
-tblCursos.getColumnModel().getColumn(0).setMaxWidth(0);
-tblCursos.getColumnModel().getColumn(0).setWidth(0);
+
+    // Garantia adicional para ocultar a coluna ID
+    tblCursos.getColumnModel().getColumn(0).setMinWidth(0);
+    tblCursos.getColumnModel().getColumn(0).setMaxWidth(0);
+    tblCursos.getColumnModel().getColumn(0).setWidth(0);
 
         
         }
