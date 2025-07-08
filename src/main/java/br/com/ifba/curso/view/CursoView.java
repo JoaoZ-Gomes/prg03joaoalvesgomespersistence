@@ -50,6 +50,8 @@ import br.com.ifba.curso.controller.CursoController;
 public class CursoView extends javax.swing.JFrame {
     private TableRowSorter<DefaultTableModel> sorter;
       private  EntityManager em;
+      private CursoController cursoController;
+
     
 
 
@@ -84,7 +86,8 @@ public class IconRenderer extends DefaultTableCellRenderer {
     initComponents();
 
     // Instancia o Controller seguindo o padrão MVC
-    CursoController cursoController = new CursoController();
+    this.cursoController = new CursoController();
+
 
     // Centraliza a janela na tela
     setLocationRelativeTo(null);
@@ -400,12 +403,9 @@ System.out.println("Texto buscado: " + texto);
     if (descricao == null || descricao.trim().isEmpty()) return;
 
     try {
-        em.getTransaction().begin();
         Curso novoCurso = new Curso(nome, descricao, cargaHoraria);
-        em.persist(novoCurso);
-        em.getTransaction().commit();
+        cursoController.salvarCurso(novoCurso);
 
-        // 💡 Adiciona na tabela com ID:
         DefaultTableModel model = (DefaultTableModel) tblCursos.getModel();
         model.addRow(new Object[]{
             novoCurso.getId(),
@@ -414,15 +414,13 @@ System.out.println("Texto buscado: " + texto);
             descricao,
             "REMOVER",
             "EDITAR"
-        }); 
+        });
 
         JOptionPane.showMessageDialog(this, "Curso salvo no banco com sucesso!");
     } catch (Exception ex) {
-        em.getTransaction().rollback();
         ex.printStackTrace();
         JOptionPane.showMessageDialog(this, "Erro ao salvar curso: " + ex.getMessage());
     }
-
     }//GEN-LAST:event_btnAdcionarActionPerformed
 
     private void btnHomescreenActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHomescreenActionPerformed
