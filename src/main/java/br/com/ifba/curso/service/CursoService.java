@@ -56,7 +56,9 @@ public class CursoService implements CursoIService {
     public Curso buscarPorId(Long id) {
         if (id == null) {
             throw new RuntimeException("ID não pode ser nulo para buscar curso.");
+            
         }
         return cursoDao.findById(id);
     }
 }
+// o git hub nao quer mandar 
